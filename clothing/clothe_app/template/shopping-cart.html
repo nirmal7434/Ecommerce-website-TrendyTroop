@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- Breadcrumb Section Begin -->
+    <section class="breadcrumb-option">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="breadcrumb__text">
+                        <h4>Shopping Cart</h4>
+                        <div class="breadcrumb__links">
+                            <a href="/">Home</a>
+                            <a href="shop">Shop</a>
+                            <span>Shopping Cart</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Breadcrumb Section End -->
+
+    <!-- Shopping Cart Section Begin -->
+    <section class="shopping-cart spad">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="shopping__cart__table">
+                        {% if cart_items %}
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Size</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for item in cart_items %}
+                                <tr>
+                                    <td class="product__cart__item">
+                                        <div class="product__cart__item__pic">
+                                            <img src="{{ item.product_size.product_info.image }}" alt="" width="80px">
+                                        </div>
+                                        <div class="product__cart__item__text">
+                                            <h6>{{ item.product_size.product_info.name }}</h6>
+                                            <h5>Rs.{{ item.product_size.product_info.price }}</h5>
+                                        </div>
+                                    </td>
+                                    <td class="cart__price">{{ item.product_size.size_name }}</td>
+
+                                    <td class="quantity__item">
+                                        <div class="quantity">
+                                            <form action="{% url 'update_cart_quantity' item.id %}" method="POST">
+                                            <div class="pro-qty-2">
+                                                     {% csrf_token %}
+                                                <input type="text" name="quantity" value="{{ item.quantity }}">
+                                            </div></form>
+                                        </div>
+                                    </td>
+                                    <td class="cart__price">Rs.{{ item.line_total }}</td>
+                                    <td class="cart__close"><a href="{% url 'remove_from_cart' item.id %}"><i class="fa fa-close"></i></a></td>
+
+<!--                                    <td class="cart__price">Rs.{{ item.total_price }}</td>-->
+
+
+<!--                                    <td class="cart__close"><a href="{% url 'remove_from_cart' item.id %}"><i class="fa fa-close"></i></a></td>-->
+<!--                                </tr>-->
+<!--                                <tr>-->
+<!--                                    <td class="product__cart__item">-->
+<!--                                        <div class="product__cart__item__pic">-->
+<!--                                            <img src="/static/img/shopping-cart/cart-2.jpg" alt="">-->
+<!--                                        </div>-->
+<!--                                        <div class="product__cart__item__text">-->
+<!--                                            <h6>Diagonal Textured Cap</h6>-->
+<!--                                            <h5>Rs.98.49</h5>-->
+<!--                                        </div>-->
+<!--                                    </td>-->
+<!--                                    <td class="quantity__item">-->
+<!--                                        <div class="quantity">-->
+<!--                                            <div class="pro-qty-2">-->
+<!--                                                <input type="text" value="1">-->
+<!--                                            </div>-->
+<!--                                        </div>-->
+<!--                                    </td>-->
+<!--                                    <td class="cart__price">Rs. 32.50</td>-->
+<!--                                    <td class="cart__close"><i class="fa fa-close"></i></td>-->
+<!--                                </tr>-->
+<!--                                <tr>-->
+<!--                                    <td class="product__cart__item">-->
+<!--                                        <div class="product__cart__item__pic">-->
+<!--                                            <img src="/static/img/shopping-cart/cart-3.jpg" alt="">-->
+<!--                                        </div>-->
+<!--                                        <div class="product__cart__item__text">-->
+<!--                                            <h6>Basic Flowing Scarf</h6>-->
+<!--                                            <h5>Rs.98.49</h5>-->
+<!--                                        </div>-->
+<!--                                    </td>-->
+<!--                                    <td class="quantity__item">-->
+<!--                                        <div class="quantity">-->
+<!--                                            <div class="pro-qty-2">-->
+<!--                                                <input type="text" value="1">-->
+<!--                                            </div>-->
+<!--                                        </div>-->
+<!--                                    </td>-->
+<!--                                    <td class="cart__price">Rs. 47.00</td>-->
+<!--                                    <td class="cart__close"><i class="fa fa-close"></i></td>-->
+<!--                                </tr>-->
+<!--                                <tr>-->
+<!--                                    <td class="product__cart__item">-->
+<!--                                        <div class="product__cart__item__pic">-->
+<!--                                            <img src="/static/img/shopping-cart/cart-4.jpg" alt="">-->
+<!--                                        </div>-->
+<!--                                        <div class="product__cart__item__text">-->
+<!--                                            <h6>Basic Flowing Scarf</h6>-->
+<!--                                            <h5>Rs.98.49</h5>-->
+<!--                                        </div>-->
+<!--                                    </td>-->
+<!--                                    <td class="quantity__item">-->
+<!--                                        <div class="quantity">-->
+<!--                                            <div class="pro-qty-2">-->
+<!--                                                <input type="text" value="1">-->
+<!--                                            </div>-->
+<!--                                        </div>-->
+<!--                                    </td>-->
+<!--                                    <td class="cart__price">Rs. 30.00</td>-->
+<!--                                    <td class="cart__close"><i class="fa fa-close"></i></td>-->
+<!--                                </tr>-->
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <p>Your cart is empty.</p>
+                        {% endif %}
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6 col-sm-6">
+                            <div class="continue__btn">
+                                <a href="/products/">Continue Shopping</a>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-6">
+                            <div class="continue__btn update__btn">
+<!--                                <a href="#"><i class="fa fa-spinner"></i> Update cart</a>-->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="cart__discount">
+                        <h6>Discount codes</h6>
+                        <form action="{% url 'apply_promo_code' %}" method="POST">
+                            {% csrf_token %}
+                            <input type="text" name="promo_code" placeholder="Coupon code">
+                            <button type="submit">Apply</button>
+                        </form>
+                    </div>
+                    <div class="cart__total">
+                        <h6>Cart total</h6>
+                        <ul>
+                            <li>Total<span>{{ cart_total }}</span></li>
+                        {% if discount %}
+                            <li>Discount({{ promo_code }})<span>Rs.{{ discount }}</span></li>
+                            <li>Final Total<span>Rs.{{ final_total }}</span></li>
+                        {% else %}
+                            <li>Final Total<span>Rs.{{ cart_total }}</span></li>
+                        {% endif %}
+                        </ul>
+                        <a href="/order/" class="primary-btn">Proceed to checkout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Shopping Cart Section End -->
+{% endblock %}

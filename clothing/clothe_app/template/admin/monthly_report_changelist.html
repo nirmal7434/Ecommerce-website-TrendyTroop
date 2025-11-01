@@ -1,0 +1,39 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block content %}
+<h2>Monthly Report</h2>
+
+<form method="get">
+    {{ form.as_p }}
+    <button type="submit" class="button">Filter</button>
+</form>
+
+{% if report_data %}
+    <h3>Report for {{ selected_month }}/{{ selected_year }}</h3>
+    <table class="adminlist">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Total Orders</th>
+                <th>Total Amount</th>
+                <th>Confirmed Orders</th>
+                <th>Pending Orders</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in report_data %}
+            <tr>
+                <td>{{ row.user__username }}</td>
+                <td>{{ row.total_orders }}</td>
+                <td>{{ row.total_amount }}</td>
+                <td>{{ row.confirmed_orders }}</td>
+                <td>{{ row.pending_orders }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{{ block.super }}
+<h3 style="margin-top: 20px;">Total Sales for {{ selected_month }}/{{ selected_year }}: ₹{{ total_monthly_sales }}</h3>
+{% endblock %}
