@@ -10,12 +10,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from clothe_app.models import Product,Category,Size,Review,ProductSize,Cart,Wishlist,Order,OrderItem,PromoCode
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
 
 from rest_framework.generics import get_object_or_404, GenericAPIView, CreateAPIView
 
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
+from .utils import generate_invoice
 
 from .serializers import ProductSerializer, CategorySerializer, SizeSerializer, ReviewSerializer, ProductSizeSerializer, \
     CartSerializer, WishListSerializer, OrderSerializer, OrderItemSerializer, RegisterSerializer, LoginSerializer
@@ -493,6 +494,15 @@ def order(request):
                 item.product_size.save()
 
             cart_items.delete()
+            pdf_buffer = generate_invoice(order)
+            email_msg = EmailMessage(
+                "Your Order Invoice",
+                "Thank you for your order! Please find attached your invoice.",
+                "nnnnbera9090@gmail.com",
+                [email],
+            )
+            email_msg.attach(f"Invoice_Order_{order.id}.pdf", pdf_buffer.getvalue(), "application/pdf")
+            email_msg.send()
             return redirect('/')
         elif payment_method == 'Razorpay':
             if final_total < 1:
@@ -529,6 +539,7 @@ def order(request):
                 )
                 item.product_size.stock -= item.quantity
                 item.product_size.save()
+            cart_items.delete()
             context = {
                 "order": new_order,
                 "cart_order": cart_items,
@@ -552,12 +563,10 @@ def payment_success(request):
         razorpay_signature = request.POST.get("razorpay_signature")
 
         order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
-        if order:
-            order.payment_status = "Paid"
-            order.save()
-            Cart.objects.filter(user=order.user).delete()
+        order.payment_status = "Confirmed"
+        order.save()
 
-    return redirect('/cart')
+        return redirect('/cart')
 
 
 @login_required
