@@ -84,7 +84,8 @@ urlpatterns = [
     path('place_order/', views.order,name='place_order'),
     path('shopdetail/', views.shopdetails),
     path('cart/<int:cart_id>/update/', views.update_cart_quantity, name='update_cart_quantity'),
-    path('apply-promo/',views.apply_promo_code,name='apply_promo_code'),
+    # path('apply-promo/',views.apply_promo_code,name='apply_promo_code'),
+    path('apply-promo/', views.ApplyPromoCodeAPIView.as_view(), name='apply_promo_code'),
     path('order-detail/',views.orders,name='order-detail'),
     path('payment-success/', views.payment_success, name='payment_success'),
     path('send_registration_email/<str:email>/<str:username>/',send_registration_email,name='send_registration_email')

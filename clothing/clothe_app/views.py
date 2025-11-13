@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics
+from rest_framework import generics, status
 from clothe_app.models import Product,Category,Size,Review,ProductSize,Cart,Wishlist,Order,OrderItem,PromoCode
 from django.core.mail import send_mail, EmailMessage
 
@@ -16,6 +16,8 @@ from rest_framework.generics import get_object_or_404, GenericAPIView, CreateAPI
 
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from .utils import generate_invoice
 
 from .serializers import ProductSerializer, CategorySerializer, SizeSerializer, ReviewSerializer, ProductSizeSerializer, \
@@ -210,61 +212,72 @@ def update_cart_quantity(request, cart_id):
     return redirect('/cart')
 
 
-def apply_promo_code(request):
-    if request.method == 'POST':
+
+class ApplyPromoCodeAPIView(APIView):
+
+    def post(self, request):
         code = request.POST.get('promo_code')
         user = request.user
+
+        if not code:
+            messages.error(request, 'Please enter a promo code.')
+            return redirect('/cart')
+
         try:
             promo = PromoCode.objects.get(code=code)
         except PromoCode.DoesNotExist:
-            messages.error(request,'invalid PromoCode')
+            messages.error(request, 'Invalid promo code.')
             return redirect('/cart')
 
+        # Check expiry
         if promo.expire_date < timezone.now():
-            messages.error(request,'this PromoCode has expired')
+            messages.error(request, 'This promo code has expired.')
             return redirect('/cart')
 
+        # Already used
         if promo.redeem_by == user:
-            messages.error(request,'you have already used this promo code')
+            messages.error(request, 'You have already used this promo code.')
             return redirect('/cart')
 
-        if promo.issue_to and promo.issue_to != user:
-            messages.error(request,'this promo code is not issued to you')
-            return redirect('/cart')
-
-        cart_item = Cart.objects.filter(user=user)
-        cart_total = sum(item.product_size.product.price * item.quantity for item in cart_item)
-
-
-        if cart_total < promo.min_amount :
-            messages.error(request,'promo_code is not valid')
-            return redirect('/cart')
-
-        if promo.type == 'percentage':
-            discount = (cart_total * promo.value) / 100
+        # Issued to someone else
         else:
-            discount = promo.value
+            # Issued to someone else
+            if promo.issue_to and promo.issue_to != user:
+                messages.error(request, 'This promo code is not issued to you.')
+                return redirect('/cart')
 
-        final_total = cart_total - discount
+            # Get cart items
+            cart_items = Cart.objects.filter(user=user)
+            if not cart_items.exists():
+                messages.error(request, 'Your cart is empty.')
+                return redirect('/cart')
 
-        request.session['discount'] = float(discount)
-        request.session['final_total'] = float(final_total)
-        request.session['promo_code'] = code
+            # Total calculation
+            cart_total = sum(item.product_size.product.price * item.quantity for item in cart_items)
 
-        promo.redeem_by = user
-        promo.save()
+            # Min amount check
+            if cart_total < promo.min_amount:
+                messages.error(request, 'Promo code not valid for this cart amount.')
+                return redirect('/cart')
 
-        # context = {
-        #     'cart_item':cart_item,
-        #     'cart_total': cart_total,
-        #     'discount':discount,
-        #     'final_total':final_total,
-        #     'promo_code':code
-        # }
+            # Calculate discount
+            if promo.type == 'percentage':
+                discount = (cart_total * promo.value) / 100
+            else:
+                discount = promo.value
 
-        return redirect('/cart')
+            final_total = cart_total - discount
 
+            # Save in session
+            request.session['discount'] = float(discount)
+            request.session['final_total'] = float(final_total)
+            request.session['promo_code'] = code
 
+            promo.redeem_by = user
+            promo.save()
+
+            messages.success(request, f"Promo code '{code}' applied successfully!")
+            return redirect('/cart')
 
 class CartUpdateView(generics.UpdateAPIView):
     queryset = Cart.objects.all()
@@ -494,6 +507,9 @@ def order(request):
                 item.product_size.save()
 
             cart_items.delete()
+            for key in ['discount', 'final_total', 'promo_code']:
+                if key in request.session:
+                    del request.session[key]
             pdf_buffer = generate_invoice(order)
             email_msg = EmailMessage(
                 "Your Order Invoice",
@@ -540,6 +556,7 @@ def order(request):
                 item.product_size.stock -= item.quantity
                 item.product_size.save()
             cart_items.delete()
+
             context = {
                 "order": new_order,
                 "cart_order": cart_items,
@@ -563,15 +580,28 @@ def payment_success(request):
         razorpay_signature = request.POST.get("razorpay_signature")
 
         order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
-        order.payment_status = "Confirmed"
-        order.save()
+        if order:
+            order.payment_status = "Confirmed"
+            order.save()
 
-        return redirect('/cart')
+            pdf_buffer = generate_invoice(order)
+            email_msg = EmailMessage(
+                "Your Order Invoice (Payment Confirmed)",
+                "Thank you for your payment! Please find attached your invoice.",
+                "nnnnbera9090@gmail.com",
+                [order.email],
+            )
+            email_msg.attach(f"Invoice_Order_{order.id}.pdf", pdf_buffer.getvalue(), "application/pdf")
+            email_msg.send()
+
+    messages.success(request, "Payment successful! Your order has been confirmed.")
+    return redirect('/orders')
+
 
 
 @login_required
 def orders(request):
-    order_items = OrderItem.objects.filter(order__user=request.user).order_by('-id')
+    order_items = Order.objects.filter(user=request.user).order_by('-id')
     return render(request,'orderlist.html',{'order_items':order_items})
 
 

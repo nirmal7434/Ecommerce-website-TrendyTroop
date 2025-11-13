@@ -188,7 +188,9 @@ if (!totalAmount || totalAmount === 0) {
                 currency: "INR",
                 name: "Trendy Troop",
                 description: "Order Payment",
+                callback_url: "http://127.0.0.1:8000/payment-success/",
                  handler: function(response) {
+                 alert('Payment successful! Payment ID: ' + response.razorpay_payment_id);
                     const orderIdInput = document.createElement('input');
                     orderIdInput.type = 'hidden';
                     orderIdInput.name = 'razorpay_order_id';
@@ -204,6 +206,9 @@ if (!totalAmount || totalAmount === 0) {
 
                     // Form submit server ma verification mate
                     orderForm.submit();
+                    setTimeout(function() {
+                       orderForm.submit();
+                     }, 1500);
                 },
                 prefill: {
                     name: "{{ request.user.get_full_name }}",
